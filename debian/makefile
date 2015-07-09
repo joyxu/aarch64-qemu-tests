@@ -31,9 +31,6 @@
 #
 ############################################################################
 
-#debian-8.1.0-arm64-lxde-CD-1.iso:
-#	wget o
-
 flash0.img: QEMU_EFI.fd
 	dd if=/dev/zero of=flash0.img bs=1M count=64
 	dd if=QEMU_EFI.fd of=flash0.img conv=notrunc

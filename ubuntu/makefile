@@ -31,20 +31,32 @@
 #
 ############################################################################
 
-foo:
-	echo "Assembling Image..."
+flash0.img: QEMU_EFI.fd
+	dd if=/dev/zero of=flash0.img bs=1M count=64
+	dd if=QEMU_EFI.fd of=flash0.img conv=notrunc
 
-oe: foo
-	@cd oe && make
+flash1.img:
+	dd if=/dev/zero of=flash1.img bs=1M count=64
 
-debian: foo
-	@cd debian && make debian
+QEMU_EFI.fd:
+	wget http://releases.linaro.org/15.01/components/kernel/uefi-linaro/release/qemu64-intelbds/QEMU_EFI.fd
 
-debian-lxde: foo
-	@cd debian && make debian-lxde
+ubuntu-cloud.img:
+	wget http://cloud-images.ubuntu.com/vivid/20150708/vivid-server-cloudimg-arm64-uefi1.img
+	mv vivid-server-cloudimg-arm64-uefi1.img $@
 
-#opensuse: foo
-#	@cd opensuse && make
+ubuntu-core.img:
+	wget http://cdimage.ubuntu.com/ubuntu-core/releases/15.04/release/ubuntu-core-15.04-core-arm64.tar.gz
 
-ubuntu-cloud: foo
-	cd ubuntu && make ubuntu-cloud
+
+# Note - I have no idea what the login or password is for the cloud image
+ubuntu-cloud: flash0.img flash1.img ubuntu-cloud.img
+	qemu-system-aarch64 \
+	    -m 1024 \
+	    -cpu cortex-a57 \
+	    -M virt -nographic \
+	    -pflash flash0.img -pflash flash1.img \
+	    -drive if=none,file=ubuntu-cloud.img,id=hd0 \
+	    -device virtio-blk-device,drive=hd0 \
+	    -netdev user,id=eth0 -device virtio-net-device,netdev=eth0
+

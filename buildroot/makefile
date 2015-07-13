@@ -56,7 +56,7 @@ $(CPIO): buildroot.git gcc-linaro-aarch64-linux-gnu-4.9-2014.09_linux
 
 # Get AArch64 linux kernel tree
 linux:
-	git clone git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git linux.git
+	git clone git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git linux
 
 # Make the kernel, substutute path to cpio
 linux/arch/arm64/boot/Image: linux $(CPIO)

@@ -35,23 +35,30 @@
 #
 # Build and run an AArch64 buildroot created initrd, in QEMU
 #
+# root password is root
+#
 
 TOPDIR:=`pwd`
 CPIO:=$(TOPDIR)/buildroot.git/output/images/rootfs.cpio
-GCCBINDIR:=$(TOPDIR)/gcc-linaro-aarch64-linux-gnu-4.9-2014.09_linux/bin
+GCCVER:=gcc-linaro-aarch64-linux-gnu-4.9-2014.09_linux
+GCCDIR:=$(TOPDIR)/$(GCCVER)/bin
+GCCBINDIR:=$(GCCDIR)/bin
+
+all: run
 
 # Get buildroot
 buildroot.git:
 	git clone git://git.buildroot.net/buildroot $@
 
 # Get Linaro AArch64 cross compiler
-gcc-linaro-aarch64-linux-gnu-4.9-2014.09_linux:
-	wget http://releases.linaro.org/14.09/components/toolchain/binaries/gcc-linaro-aarch64-linux-gnu-4.9-2014.09_linux.tar.xz
-	tar xJf gcc-linaro-aarch64-linux-gnu-4.9-2014.09_linux.tar.xz
+$(GCCDIR):
+	wget http://releases.linaro.org/14.09/components/toolchain/binaries/$(GCCVER).tar.xz
+	tar xJf $(GCCVER).tar.xz
 
 # Make the initramfs
-$(CPIO): buildroot.git gcc-linaro-aarch64-linux-gnu-4.9-2014.09_linux
+$(CPIO): buildroot.git $(GCCVER) buildroot_config
 	cp buildroot_config buildroot.git/.config
+	sed -i "s#BR2_TOOLCHAIN_EXTERNAL_PATH=.*#BR2_TOOLCHAIN_EXTERNAL_PATH=\"$(GCCDIR)\"#" buildroot.git/.config
 	(cd buildroot.git && make oldconfig && make)
 
 # Get AArch64 linux kernel tree
@@ -59,11 +66,11 @@ linux:
 	git clone git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git linux
 
 # Make the kernel, substutute path to cpio
-linux/arch/arm64/boot/Image: linux $(CPIO)
+linux/arch/arm64/boot/Image: linux $(CPIO) kernel_config
 	cp kernel_config linux/.config
-	sed -i "s#CONFIG_INITRAMFS_SOURCE=.*#CONFIG_INITRAMFS_SOURCE=$(CPIO)#" linux/.config
-	(cd linux && ARCH=arm make oldconfig)
-	(cd linux && ARCH=arm make)
+	sed -i "s#CONFIG_INITRAMFS_SOURCE=.*#CONFIG_INITRAMFS_SOURCE=\"$(CPIO)\"#" linux/.config
+	(cd linux && ARCH=arm64 make oldconfig)
+	(cd linux && ARCH=arm64 make)
 
 # Run the kernel and initrd in QEMU
 run: linux/arch/arm64/boot/Image 

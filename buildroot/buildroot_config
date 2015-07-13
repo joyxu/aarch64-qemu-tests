@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot 2015.08-git-00629-g76d1c72 Configuration
+# Buildroot 2015.08-git-00642-gc778e27 Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 BR2_HOSTARCH_NEEDS_IA32_LIBS=y
@@ -464,6 +464,10 @@ BR2_PACKAGE_CMAKE_ARCH_SUPPORTS=y
 #
 
 #
+# pcmanfm needs X.org and a toolchain w/ wchar, threads, C++
+#
+
+#
 # X libraries and helper libraries
 #
 # BR2_PACKAGE_XKEYBOARD_CONFIG is not set
@@ -724,6 +728,11 @@ BR2_PACKAGE_CMAKE_ARCH_SUPPORTS=y
 # BR2_PACKAGE_LIBDMTX is not set
 # BR2_PACKAGE_LIBDRM is not set
 # BR2_PACKAGE_LIBEXIF is not set
+
+#
+# libfm needs X.org and a toolchain w/ wchar, threads, C++
+#
+# BR2_PACKAGE_LIBFM_EXTRA is not set
 # BR2_PACKAGE_LIBFREEIMAGE is not set
 # BR2_PACKAGE_LIBGEOTIFF is not set
 
@@ -744,6 +753,7 @@ BR2_PACKAGE_CMAKE_ARCH_SUPPORTS=y
 # BR2_PACKAGE_LIBSVGTINY is not set
 # BR2_PACKAGE_LIBVA is not set
 # BR2_PACKAGE_LIBVIPS is not set
+# BR2_PACKAGE_MENU_CACHE is not set
 # BR2_PACKAGE_OPENCV is not set
 # BR2_PACKAGE_OPENJPEG is not set
 # BR2_PACKAGE_PANGO is not set

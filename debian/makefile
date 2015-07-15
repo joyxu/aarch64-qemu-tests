@@ -62,19 +62,7 @@ debian-8.1.0-arm64-netinst.iso:
 	wget http://cdimage.debian.org/debian-cd/8.1.0/arm64/iso-cd/debian-8.1.0-arm64-netinst.iso
 
 debian-root.complete: debian-8.1.0-arm64-netinst.iso debian-root $(LINAROIMG).raw
-	mkdir -p debian_root_loop
-	mkdir -p linaro_root_loop
-	mkdir -p debian-iso
-	sudo mount -o loop debian-root debian_root_loop
-	sudo mount -o loop $(LINAROIMG).raw linaro_root_loop
-	sudo mount -o loop debian-8.1.0-arm64-netinst.iso debian-iso
-	sudo grml-debootstrap -v -i $(TOPDIR)/debian-iso --arch arm64 \
-		--nokernel --defaultinterfaces --target debian_root_loop \
-		-c ./debootstrap/config --packages ./debootstrap/packages
-	sudo umount debian-iso
-	sudo mkdir -p debian_root_loop/lib/firmware && \
-		sudo cp -ar linaro_root_loop/lib/firmware/* debian_root_loop/lib/firmware
-	sudo umount debian_root_loop
+	sudo debootstrap/wrapper.sh $(TOPDIR) $(LINAROIMG) 
 	touch $@
 
 debian-rootfs.img: debian-root.complete
@@ -95,3 +83,8 @@ clean:
 	if [ -d debian_root_loop ]; then rmdir debian_root_loop; fi
 	if [ -d linaro_root_loop ]; then rmdir linaro_root_loop; fi
 	if [ -d debian-iso ]; then rmdir debian-iso; fi
+
+unmount:
+	guestunmount debian_root_loop || true
+	guestunmount linaro_root_loop || true
+	guestunmount debian-iso || true

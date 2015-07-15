@@ -1,81 +1,97 @@
-############################################################################
+##############################################################################
+#	
+# Copyright (c) 2015 Mark Charlebois (charlebm@gmail.com)
 #
-#   Copyright (c) 2015 Mark Charlebois. All rights reserved.
+# All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
+# modification, are permitted (subject to the limitations in the
+# disclaimer below) provided that the following conditions are met:
 #
-# 1. Redistributions of source code must retain the above copyright
-#    notice, this list of conditions and the following disclaimer.
-# 2. Redistributions in binary form must reproduce the above copyright
-#    notice, this list of conditions and the following disclaimer in
-#    the documentation and/or other materials provided with the
-#    distribution.
-# 3. The names of the contributors may not be used to endorse or promote
-#    products derived from this software without specific prior written
-#    permission.
+# * Redistributions of source code must retain the above copyright
+#   notice, this list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the
+#   distribution.
 #
 # NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-# BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-# AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED, INCLUDING, 
-# BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF AND FITNESS FOR A 
-# PARTICULAR PURPOSE ARE. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-# CONTRIBUTORS BE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
-# EXEMPLARY, OR DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
-# OF GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-# IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# GRANTED BY THIS LICENSE.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
+# HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+# BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+# IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+##############################################################################
 
-flash0.img: QEMU_EFI.fd
-	dd if=/dev/zero of=flash0.img bs=1M count=64
-	dd if=QEMU_EFI.fd of=flash0.img conv=notrunc
+#
+# Build and flash a Debian jessie for arm64 on DB410c
+#
+# root password is root
+#
 
-flash1.img:
-	dd if=/dev/zero of=flash1.img bs=1M count=64
+TOPDIR:=`pwd`
 
-QEMU_EFI.fd:
-	wget http://releases.linaro.org/15.01/components/kernel/uefi-linaro/release/qemu64-intelbds/QEMU_EFI.fd
+all: debian-rootfs.img
 
-hda.img:
-	fallocate -l 8G $@
+install deps:
+	sudo apt-get install 
 
-DEB_ISO=debian-testing-arm64-netinst.iso
+LINAROIMG:=linaro-vivid-developer-qcom-snapdragon-arm64-20150618-47.img
 
-$(DEB_ISO):
-	wget http://cdimage.debian.org/cdimage/weekly-builds/arm64/iso-cd/debian-testing-arm64-netinst.iso
+$(LINAROIMG).gz:
+	wget https://builds.96boards.org/releases/dragonboard410c/linaro/ubuntu/15.06/$(LINAROIMG).gz
 
-debian: $(DEB_ISO) hda.img flash0.img flash1.img
-	qemu-system-aarch64 \
-	    -m 1024 \
-	    -cpu cortex-a57 \
-	    -M virt \
-	    -pflash flash0.img -pflash flash1.img \
-	    -serial stdio \
-	    -drive file=$(DEB_ISO),id=cdrom,if=none,media=cdrom \
-	    -device virtio-scsi-device -device scsi-cd,drive=cdrom \
-	    -drive if=none,file=hda.img,id=hd0 -device virtio-blk-device,drive=hd0 \
-	    -netdev user,id=eth0 \
-	    -device virtio-net-device,netdev=eth0
+$(LINAROIMG).raw: $(LINAROIMG).gz
+	gzip -d $(LINAROIMG).gz
+	simg2img $(LINAROIMG) $(LINAROIMG).raw
 
-DEB_LXDE_ISO=debian-8.1.0-arm64-lxde-CD-1.iso
+debian-root:
+	truncate -s 3G $@
+	mkfs.ext4 $@
 
-$(DEB_LXDE_ISO):
-	wget http://cdimage.debian.org/debian-cd/8.1.0/arm64/iso-cd/debian-8.1.0-arm64-xfce-CD-1.iso
+debian-8.1.0-arm64-netinst.iso:
+	wget http://cdimage.debian.org/debian-cd/8.1.0/arm64/iso-cd/debian-8.1.0-arm64-netinst.iso
 
-debian-lxde:
-	qemu-system-aarch64 \
-	    -m 1024 \
-	    -cpu cortex-a57 \
-	    -M virt \
-	    -pflash flash0.img -pflash flash1.img \
-	    -serial stdio \
-	    -drive file=$(DEB_LXDE_ISO),id=cdrom,if=none,media=cdrom \
-	    -device virtio-scsi-device -device scsi-cd,drive=cdrom \
-	    -drive if=none,file=hda.img,id=hd0 -device virtio-blk-device,drive=hd0 \
-	    -netdev user,id=eth0 \
-	    -device virtio-net-device,netdev=eth0
+debian-root.complete: debian-8.1.0-arm64-netinst.iso debian-root $(LINAROIMG).raw
+	mkdir -p debian_root_loop
+	mkdir -p linaro_root_loop
+	mkdir -p debian-iso
+	sudo mount -o loop debian-root debian_root_loop
+	sudo mount -o loop $(LINAROIMG).raw linaro_root_loop
+	sudo mount -o loop debian-8.1.0-arm64-netinst.iso debian-iso
+	sudo grml-debootstrap -v -i $(TOPDIR)/debian-iso --arch arm64 \
+		--nokernel --defaultinterfaces --target debian_root_loop \
+		-c ./debootstrap/config --packages ./debootstrap/packages
+	sudo umount debian-iso
+	sudo mkdir -p debian_root_loop/lib/firmware && \
+		sudo cp -ar linaro_root_loop/lib/firmware/* debian_root_loop/lib/firmware
+	sudo umount debian_root_loop
+	touch $@
+
+debian-rootfs.img: debian-root.complete
+	img2simg debian-root $@
+
+BOOTIMG:=boot-linaro-vivid-qcom-snapdragon-arm64-20150618-47.img
+
+$(BOOTIMG):
+	wget https://builds.96boards.org/releases/dragonboard410c/linaro/ubuntu/15.06/$(BOOTIMG).gz
+	gzip -d $(BOOTIMG).gz
+
+flashall: $(BOOTIMG)
+	sudo fastboot flash boot $(BOOTIMG)
+	sudo fastboot flash rootfs debian-rootfs.img
+
+clean:
+	rm -f debian-root.complete debian-rootfs.img debian-root $(LINAROIMG).raw $(LINAROIMG).gz $(LINAROIMG) $(BOOTIMG)
+	if [ -d debian_root_loop ]; then rmdir debian_root_loop; fi
+	if [ -d linaro_root_loop ]; then rmdir linaro_root_loop; fi
+	if [ -d debian-iso ]; then rmdir debian-iso; fi

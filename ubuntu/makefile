@@ -31,32 +31,33 @@
 #
 ############################################################################
 
-flash0.img: QEMU_EFI.fd
-	dd if=/dev/zero of=flash0.img bs=1M count=64
-	dd if=QEMU_EFI.fd of=flash0.img conv=notrunc
+all: ubuntu-cloud
 
-flash1.img:
-	dd if=/dev/zero of=flash1.img bs=1M count=64
+vivid-server-cloudimg-arm64-disk1.img:
+	wget https://cloud-images.ubuntu.com/vivid/current/vivid-server-cloudimg-arm64-disk1.img
 
-QEMU_EFI.fd:
-	wget http://releases.linaro.org/15.01/components/kernel/uefi-linaro/release/qemu64-intelbds/QEMU_EFI.fd
+disk1.img: vivid-server-cloudimg-arm64-disk1.img
+	ln -s *disk1.img disk1.img
 
-ubuntu-cloud.img:
-	wget http://cloud-images.ubuntu.com/vivid/20150708/vivid-server-cloudimg-arm64-uefi1.img
-	mv vivid-server-cloudimg-arm64-uefi1.img $@
+boot/vmlinuz: vivid-server-cloudimg-arm64-disk1.img
+	sudo modprobe nbd max_part=8
+	sudo qemu-nbd --connect=/dev/nbd0 vivid-server-cloudimg-arm64-disk1.img
+	mkdir -p ./virt 
+	sudo mount /dev/nbd0p1 ./virt
+	mkdir -p boot && rm -f ./boot/*
+	sudo cp ./virt/boot/*-generic boot
+	sudo chown $(USER):$(USER) boot/*
+	sudo qemu-nbd -d /dev/nbd0
+	sudo umount ./virt
+	cd boot && ln -s initrd.img-* initrd.img
+	cd boot && ln -s vmlinuz-* vmlinuz
 
-ubuntu-core.img:
-	wget http://cdimage.ubuntu.com/ubuntu-core/releases/15.04/release/ubuntu-core-15.04-core-arm64.tar.gz
-
-
-# Note - I have no idea what the login or password is for the cloud image
-ubuntu-cloud: flash0.img flash1.img ubuntu-cloud.img
+ubuntu-cloud: disk1.img boot/vmlinuz
 	qemu-system-aarch64 \
-	    -m 1024 \
-	    -cpu cortex-a57 \
-	    -M virt -nographic \
-	    -pflash flash0.img -pflash flash1.img \
-	    -drive if=none,file=ubuntu-cloud.img,id=hd0 \
-	    -device virtio-blk-device,drive=hd0 \
-	    -netdev user,id=eth0 -device virtio-net-device,netdev=eth0
-
+		-m 1024 \
+		-cpu cortex-a57 -smp 1 \
+    		-M virt -nographic \
+    		-rtc driftfix=slew -kernel boot/vmlinuz \
+    		-append "console=ttyAMA0 root=LABEL=cloudimg-rootfs rw init=/bin/sh" \
+    		-initrd boot/initrd.img -device virtio-scsi-device,id=scsi \
+    		-device scsi-hd,drive=hd -drive if=none,id=hd,file=disk1.img

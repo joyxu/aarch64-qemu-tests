@@ -39,25 +39,22 @@ vivid-server-cloudimg-arm64-disk1.img:
 disk1.img: vivid-server-cloudimg-arm64-disk1.img
 	ln -s *disk1.img disk1.img
 
-boot/vmlinuz: vivid-server-cloudimg-arm64-disk1.img
-	sudo modprobe nbd max_part=8
-	sudo qemu-nbd --connect=/dev/nbd0 vivid-server-cloudimg-arm64-disk1.img
+boot/complete: vivid-server-cloudimg-arm64-disk1.img
 	mkdir -p ./virt 
-	sudo mount /dev/nbd0p1 ./virt
 	mkdir -p boot && rm -f ./boot/*
-	sudo cp ./virt/boot/*-generic boot
-	sudo chown $(USER):$(USER) boot/*
-	sudo qemu-nbd -d /dev/nbd0
-	sudo umount ./virt
+	sudo ./extract_bootfiles.sh $(USER)
 	cd boot && ln -s initrd.img-* initrd.img
 	cd boot && ln -s vmlinuz-* vmlinuz
+	touch boot/complete
 
-ubuntu-cloud: disk1.img boot/vmlinuz
+ubuntu-cloud: disk1.img boot/complete
 	qemu-system-aarch64 \
 		-m 1024 \
 		-cpu cortex-a57 -smp 1 \
     		-M virt -nographic \
     		-rtc driftfix=slew -kernel boot/vmlinuz \
-    		-append "console=ttyAMA0 root=LABEL=cloudimg-rootfs rw init=/bin/sh" \
-    		-initrd boot/initrd.img -device virtio-scsi-device,id=scsi \
-    		-device scsi-hd,drive=hd -drive if=none,id=hd,file=disk1.img
+    		-append "console=ttyAMA0 root=LABEL=cloudimg-rootfs rw" \
+    		-initrd boot/initrd.img \
+		-device virtio-scsi-device,id=scsi -device scsi-hd,drive=hd \
+		-drive if=none,id=hd,file=disk1.img 
+

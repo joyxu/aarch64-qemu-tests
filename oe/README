@@ -1,0 +1,3 @@
+Run "make" to download all the required files and boot into the rootfs under QEMU.
+
+Type "halt" to exit QEMU.

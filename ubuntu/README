@@ -1,3 +1,14 @@
-Based on instructions on:
+Based on instructions at:
 
 http://rzycki.blogspot.com/2014/08/using-qemu-to-run-ubuntu-arm-64-bit.html
+
+Run "make" to download the required files, configure the rootfs and boot
+into Ubuntu. 
+
+The script requires sudo so it can chroot into the rootfs and configure it.
+
+You will be requested to set the timezone, add the user ubuntu and the password,
+and set the root password.
+
+You will then be presented with the login prompt for Ubuntu running under QEMU
+the initial login seems to take about 30 seconds. Not sure why.

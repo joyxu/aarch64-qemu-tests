@@ -38,11 +38,13 @@
 # root password is root
 #
 
-TOPDIR:=`pwd`
+TOPDIR:=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 CPIO:=$(TOPDIR)/buildroot.git/output/images/rootfs.cpio
 GCCVER:=gcc-linaro-aarch64-linux-gnu-4.9-2014.09_linux
-GCCDIR:=$(TOPDIR)/$(GCCVER)/bin
+GCCDIR:=$(TOPDIR)/$(GCCVER)
 GCCBINDIR:=$(GCCDIR)/bin
+#VMLINUX:=buildroot.git/output/images/vmlinux
+VMLINUX:=buildroot.git/output/build/linux-4.1.3/vmlinux
 
 all: run
 
@@ -51,12 +53,13 @@ buildroot.git:
 	git clone git://git.buildroot.net/buildroot $@
 
 # Get Linaro AArch64 cross compiler
-$(GCCDIR):
+$(GCCDIR)/.complete:
 	wget http://releases.linaro.org/14.09/components/toolchain/binaries/$(GCCVER).tar.xz
 	tar xJf $(GCCVER).tar.xz
+	touch $@
 
 # Make the initramfs
-$(CPIO): buildroot.git $(GCCVER) buildroot_config
+$(VMLINUX): buildroot.git $(GCCDIR)/.complete buildroot_config kernel_config
 	cp buildroot_config buildroot.git/.config
 	sed -i "s#BR2_TOOLCHAIN_EXTERNAL_PATH=.*#BR2_TOOLCHAIN_EXTERNAL_PATH=\"$(GCCDIR)\"#" buildroot.git/.config
 	(cd buildroot.git && make oldconfig && make)
@@ -73,7 +76,7 @@ linux/arch/arm64/boot/Image: linux $(CPIO) kernel_config
 	(cd linux && ARCH=arm64 make)
 
 # Run the kernel and initrd in QEMU
-run: linux/arch/arm64/boot/Image 
+run: linux/arch/arm64/boot/Image
 	which qemu-system-aarch64 || (echo "Error: Install qemu-system-aarch64" && false)
-	qemu-system-aarch64 -M virt -cpu cortex-a57 -nographic -smp 1 -m 2048 -kernel linux/arch/arm64/boot/Image --append "console=ttyAMA0"
+	qemu-system-aarch64 -M virt -cpu cortex-a57 -nographic -smp 1 -m 2048 -kernel $< --append "console=ttyAMA0"
 

@@ -45,6 +45,7 @@ GCCDIR:=$(TOPDIR)/$(GCCVER)
 GCCBINDIR:=$(GCCDIR)/bin
 #VMLINUX:=buildroot.git/output/images/vmlinux
 VMLINUX:=buildroot.git/output/build/linux-4.1.3/vmlinux
+COMMIT=8f609ed603220e0ac0ef9a45b0214eb87ab85d10e
 
 all: run
 
@@ -62,6 +63,8 @@ $(GCCDIR)/.complete:
 $(VMLINUX): buildroot.git $(GCCDIR)/.complete buildroot_config kernel_config
 	cp buildroot_config buildroot.git/.config
 	sed -i "s#BR2_TOOLCHAIN_EXTERNAL_PATH=.*#BR2_TOOLCHAIN_EXTERNAL_PATH=\"$(GCCDIR)\"#" buildroot.git/.config
+	(cd buildroot.git && git checkout $(COMMIT))
+	(cd buildroot.git && patch -p1 < ../buildroot.patch)
 	(cd buildroot.git && make oldconfig && make)
 
 # Get AArch64 linux kernel tree

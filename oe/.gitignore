@@ -1,0 +1,5 @@
+QEMU_EFI.fd
+flash0.img
+flash1.img
+vexpress64-oe.img
+vexpress64-openembedded_minimal-armv8-gcc-4.9_20140823-686.img.gz

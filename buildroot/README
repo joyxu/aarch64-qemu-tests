@@ -1,0 +1,9 @@
+Run "make" to download all the required dependencies, and boot into the
+rootfs under QEMU.
+
+The root password is root.
+
+Patches to libarchive.mk were required as the only working download
+was from github.
+
+

@@ -1,0 +1,25 @@
+diff --git a/package/libarchive/libarchive.hash b/package/libarchive/libarchive.hash
+index 5f96211..ec32190 100644
+--- a/package/libarchive/libarchive.hash
++++ b/package/libarchive/libarchive.hash
+@@ -1,2 +1,2 @@
+ # Locally computed:
+-sha256  eb87eacd8fe49e8d90c8fdc189813023ccc319c5e752b01fb6ad0cc7b2c53d5e  libarchive-3.1.2.tar.gz
++sha256  fe34755baada92306182e7b5390a560babe98b31824b32dfd67216052253570d  libarchive-3.1.2.tar.gz
+diff --git a/package/libarchive/libarchive.mk b/package/libarchive/libarchive.mk
+index 206de3f..d6803f4 100644
+--- a/package/libarchive/libarchive.mk
++++ b/package/libarchive/libarchive.mk
+@@ -5,10 +5,11 @@
+ ################################################################################
+ 
+ LIBARCHIVE_VERSION = 3.1.2
+-LIBARCHIVE_SITE = http://www.libarchive.org/downloads
++LIBARCHIVE_SITE = https://github.com/libarchive/libarchive/tarball/release
+ LIBARCHIVE_INSTALL_STAGING = YES
+ LIBARCHIVE_LICENSE = BSD-2c, BSD-3c
+ LIBARCHIVE_LICENSE_FILES = COPYING
++LIBARCHIVE_AUTORECONF = YES
+ 
+ ifeq ($(BR2_PACKAGE_LIBARCHIVE_BSDTAR),y)
+ ifeq ($(BR2_STATIC_LIBS),y)
